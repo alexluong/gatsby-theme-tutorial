@@ -1,0 +1,19 @@
+{
+  "name": "gatsby-theme-tutorial",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "develop": "gatsby develop",
+    "start": "npm run develop",
+    "build": "gatsby build",
+    "serve": "gatsby serve"
+  },
+  "dependencies": {
+    "gatsby": "^2.0.55",
+    "gatsby-source-filesystem": "^2.0.9",
+    "gatsby-transformer-remark": "^2.1.12",
+    "react": "^16.5.1",
+    "react-dom": "^16.5.1"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "gatsby-theme-tutorial",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "Alex Luong",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}
