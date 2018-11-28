@@ -436,7 +436,7 @@ actions.setWebpackConfig({
 // ...
 ```
 
-That's it. Your theme is now ready to be published and reused.
+That's it. Your theme is now ready to be published and reused. You can find the code for this tutorial [here](https://github.com/alexluong/gatsby-theme-tutorial).
 
 ## Final thoughts
 
