@@ -1,5 +1,5 @@
 {
-  "name": "gatsby-theme-tutorial",
+  "name": "blog",
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
@@ -10,9 +10,7 @@
   },
   "dependencies": {
     "gatsby": "^2.0.56",
-    "gatsby-source-filesystem": "^2.0.9",
-    "gatsby-theme": "^0.0.1",
-    "gatsby-transformer-remark": "^2.1.13",
+    "gatsby-theme-tutorial": "1.0.0",
     "react": "^16.5.1",
     "react-dom": "^16.5.1"
   }

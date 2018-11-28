@@ -6,6 +6,8 @@ function PostTemplate({ data: { post } }) {
   return (
     <div>
       <Title>{post.frontmatter.title}</Title>
+      <p>{post.frontmatter.description}</p>
+      <hr />
       <div dangerouslySetInnerHTML={{ __html: post.html }} />
     </div>
   )
@@ -19,6 +21,7 @@ export const pageQuery = graphql`
       html
       frontmatter {
         title
+        description
       }
     }
   }
