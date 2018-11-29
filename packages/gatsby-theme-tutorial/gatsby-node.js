@@ -1,7 +1,30 @@
 const path = require("path")
-const fs = require("fs")
-const pkg = require("./package.json")
-const { withThemePath } = require("gatsby-theme")
+
+function withThemePath(relativePath) {
+  let finalPath
+
+  try {
+    // Check if the user's site has the file
+    // path.resolve returns the absolute path
+    // relative to process.cwd()
+    let pathResolvedPath = path.resolve(relativePath)
+    require.resolve(pathResolvedPath)
+    finalPath = pathResolvedPath
+  } catch (e) {
+    try {
+      // If the user hasn't implemented the file,
+      // require.resolve is relative to this file
+      finalPath = require.resolve(relativePath)
+    } catch (e) {
+      // If we don't have the file also
+      // we're doing something wrong then
+      console.log(e)
+      finalPath = relativePath
+    }
+  }
+
+  return finalPath
+}
 
 exports.createPages = ({ graphql, actions }) => {
   const { createPage } = actions
@@ -26,7 +49,7 @@ exports.createPages = ({ graphql, actions }) => {
         posts.edges.map(({ node: { frontmatter: { slug } } }) => {
           createPage({
             path: slug,
-            component: withThemePath("src/templates/PostTemplate.js"),
+            component: withThemePath("./src/templates/PostTemplate.js"),
             context: { slug },
           })
         })
@@ -35,54 +58,14 @@ exports.createPages = ({ graphql, actions }) => {
   })
 }
 
-// exports.onCreateWebpackConfig = ({ stage, loaders, actions }) => {
-//   actions.setWebpackConfig({
-//     module: {
-//       rules: [
-//         {
-//           test: /\.js$/,
-//           include: path.dirname(require.resolve("gatsby-theme-tutorial")),
-//           use: [loaders.js()],
-//         },
-//       ],
-//     },
-//   })
-// }
-
-exports.onCreateWebpackConfig = ({ actions }) => {
-  // This is the folder that the replacement components will sit
-  const themePrefix = `${pkg.name}-component-replacement--components`
-  const userComponentsDir = path.resolve(`./src/components/${themePrefix}`)
-
-  const userComponents = {}
-
-  // Check if user wants to set up components replacements
-  if (fs.existsSync(userComponentsDir)) {
-    fs.readdirSync(userComponentsDir).forEach(fileName => {
-      // Remove ext (.js) from file name
-      const componentName = fileName.slice(0, fileName.lastIndexOf("."))
-
-      userComponents[`${themePrefix}/${componentName}`] = path.resolve(
-        `./src/components/${themePrefix}/${fileName}`,
-      )
-    })
-  }
-
+// Let Webpack know how to process files
+exports.onCreateWebpackConfig = ({ stage, loaders, actions }) => {
   actions.setWebpackConfig({
-    resolve: {
-      alias: {
-        // Alias order matters. User's first; fallback second
-        ...userComponents,
-        [themePrefix]: path.join(__dirname, "./src/components"),
-      },
-    },
-
-    // Let Webpack know how to process files
     module: {
       rules: [
         {
           test: /\.js$/,
-          include: path.dirname(require.resolve(pkg.name)),
+          include: path.dirname(require.resolve("gatsby-theme-tutorial")),
           use: [loaders.js()],
         },
       ],

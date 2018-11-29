@@ -56,12 +56,14 @@ slug: "post"
 Hi
 ```
 
-Add some necessary packages to transform it into Gatsby data
+Add some necessary packages to transform it into Gatsby data:
+
+**NOTE**: _Also, make sure you're running at least Gatsby version 2.0.57._
 
 ```sh
 # in packages/gatsby-theme-tutorial/
 # let's also upgrade to the latest gatsby version at this time
-yarn add gatsby@^2.0.56 gatsby-source-filesystem gatsby-transformer-remark
+yarn add gatsby@^2.0.57 gatsby-source-filesystem gatsby-transformer-remark
 ```
 
 ```js
@@ -184,7 +186,7 @@ Let's create another Gatsby site and consume the theme we just create. And yes, 
 ```sh
 # in workspace root
 
-# to utilize yarn workspace, the module needs to have an index.js
+# since theme is just a Gatsby plugin, we need an index.js
 touch packages/gatsby-theme-tutorial/index.js
 
 gatsby new packages/blog https://github.com/gatsbyjs/gatsby-starter-hello-world
@@ -225,10 +227,14 @@ It's that easy!! Using themes, users can just focus on their content and don't h
 
 As great as any theme can be, there will always be something that we want to change.
 
-In this case, we're using an awesome theme already, but let's say we don't like the color of the title. This blue is not very good, and we want something better. Let's recreate the title component:
+In this case, we're using an awesome theme already, but let's say we don't like the color of the title. This blue is not very good, and we want something better.
+
+We can totally do this with ease with Component Shadowing. It's an awesome feature where we can create a component in our blog, and it'll override the corresponding component in the theme. All we need to do is creating a folder with the theme name (`gatsby-theme-tutorial`) under our `components` folder and putting the new-and-improved component there.
+
+Let's recreate the title component then:
 
 ```jsx
-// in packages/blog/src/components/Title.js
+// in packages/blog/src/components/gatsby-theme-tutorial/Title.js
 // let's change the color from blue -> green
 
 import React from "react"
@@ -240,104 +246,67 @@ function Title({ children }) {
 export default Title
 ```
 
-Save, and see the magic happens.
-
-...
-
-Hmm well nothing happened. The title's color is still blue. That's because we haven't set up the theme to do anything with customization just yet. So let's get on it then:
-
-```jsx
-// in packages/gatsby-theme-tutorial/src/templates/PostTemplate.js
-
-// ...
-
-// instead of importing Title directly from components folder
-// let's import it like this
-
-// import Title from "../components/Title"
-import Title from "gatsby-theme-tutorial-component-replacement--components/Title"
-
-// ...
-```
-
-Now, set up aliases so that if the users want to override the `Title` component, they can:
-
-```js
-// in packages/gatsby-theme-tutorial/gatsby-node.js
-
-// ...
-const fs = require("fs")
-const pkg = require("./package.json")
-
-// ...
-
-exports.onCreateWebpackConfig = ({ actions }) => {
-  // This is the folder that the replacement components will sit
-  const themePrefix = `${pkg.name}-component-replacement--components`
-  const userComponentsDir = path.resolve(`./src/components/${themePrefix}`)
-
-  const userComponents = {}
-
-  // Check if user wants to set up components replacements
-  if (fs.existsSync(userComponentsDir)) {
-    fs.readdirSync(userComponentsDir).forEach(fileName => {
-      // Remove ext (.js) from file name
-      const componentName = fileName.slice(0, fileName.lastIndexOf("."))
-
-      userComponents[`${themePrefix}/${componentName}`] = path.resolve(
-        `./src/components/${themePrefix}/${fileName}`,
-      )
-    })
-  }
-
-  actions.setWebpackConfig({
-    resolve: {
-      alias: {
-        // Alias order matters. User's first; fallback second
-        ...userComponents,
-        [themePrefix]: path.join(__dirname, "./src/components"),
-      },
-    },
-  })
-}
-```
-
-And lastly, move our new-and-improved `Title` component to the replacement folder:
-
-```sh
-# in packages/blog/src/components
-mkdir gatsby-theme-tutorial-component-replacement--components
-mv Title.js gatsby-theme-tutorial-component-replacement--components/
-```
-
-Run the site again, and this time you should see our title in green.
+Save, and see the magic happens. Yes. It's that easy.
 
 ### 2. Override Gatsby template
 
 Now, let's say we want to change the `PostTemplate`. We may need to change the layout of the page, or we may want to have some extra fields in our post. We can totally achieve all these like so:
 
-We'd use a utility function `withThemePath` that check if users want to override the template. The concept is quite similar to what we've done earlier, but the solution is a lot more elegant. This function can be found in the package `gatsby-theme`, so let's install it in our theme:
+In our `gatsby-node.js`, let's create a helper function that will:
 
-```sh
-# in packages/gatsby-theme-tutorial
+1. Check if the user has a template that they wanna use
+2. If yes, we'll use that template
+3. If not, we'll use the theme's template
 
-yarn add gatsby-theme
-```
+Here's how that function looks:
 
 ```js
 // in packages/gatsby-theme-tutorial/gatsby-node.js
 
-// ...
-const { withThemePath } = require("gatsby-theme")
+function withThemePath(relativePath) {
+  let finalPath
 
-// ...
-createPage({
-  path: slug,
-  // component: path.resolve(__dirname, "src/templates/PostTemplate.js"), // highlight-line
-  component: withThemePath("src/templates/PostTemplate.js"), // highlight-line
-  context: { slug },
-})
-// ...
+  try {
+    // Check if the user's site has the file
+    // path.resolve returns the absolute path
+    // relative to process.cwd()
+    let pathResolvedPath = path.resolve(relativePath)
+    require.resolve(pathResolvedPath)
+    finalPath = pathResolvedPath
+  } catch (e) {
+    try {
+      // If the user hasn't implemented the file,
+      // require.resolve is relative to this file
+      finalPath = require.resolve(relativePath)
+    } catch (e) {
+      // If we don't have the file also
+      // we're doing something wrong then
+      console.log(e)
+      finalPath = relativePath
+    }
+  }
+
+  return finalPath
+}
+```
+
+and use that helper function when creating the posts:
+
+```js
+// in packages/gatsby-theme-tutorial/gatsby-node.js
+
+exports.createPages = ({ graphql, actions }) => {
+  // ...
+
+  createPage({
+    path: slug,
+    // component: path.resolve(__dirname, "src/templates/PostTemplate.js"), // highlight-line
+    component: withThemePath("src/templates/PostTemplate.js"), // highlight-line
+    context: { slug },
+  })
+
+  // ...
+}
 ```
 
 With this change, if the user has an override for `PostTemplate`, the theme will use it instead of its own template. Let's create it then:
@@ -347,7 +316,7 @@ With this change, if the user has an override for `PostTemplate`, the theme will
 
 import React from "react"
 import { graphql } from "gatsby"
-import Title from "gatsby-theme-tutorial-component-replacement--components/Title"
+import Title from "../components/gatsby-theme-tutorial/Title" // highlight-line
 
 function PostTemplate({ data: { post } }) {
   return (
@@ -377,7 +346,7 @@ export const pageQuery = graphql`
 `
 ```
 
-**NOTE**: _To be frank, this doesn't seem like the best options yet since we'll have to copy-paste the original `PostTemplate` from theme and adjust it. I believe we will be able to solve this problem in the future and come up with a more elegant solution. In the mean time, there are ways for themes developer to go around this with some API pattern. I'll elaborate more in future posts._
+**NOTE**: _To be frank, this doesn't seem like the best options yet since we'll have to copy-paste the original `PostTemplate` from the theme and adjust it. I believe we will be able to solve this problem in the future and come up with a more elegant solution. In the mean time, there are ways for themes developer to go around this with some API pattern. I'll elaborate more in future posts._
 
 Don't forget to add the `description` field in our post:
 
@@ -410,30 +379,20 @@ Before publishing the theme to NPM, there is one last step we have to do. As we'
 
 // ...
 
-actions.setWebpackConfig({
-  resolve: {
-    alias: {
-      // Alias order matters. User's first; fallback second
-      ...userComponents,
-      [themePrefix]: path.join(__dirname, "./src/components"),
+// Let Webpack know how to process files
+exports.onCreateWebpackConfig = ({ stage, loaders, actions }) => {
+  actions.setWebpackConfig({
+    module: {
+      rules: [
+        {
+          test: /\.js$/,
+          include: path.dirname(require.resolve("gatsby-theme-tutorial")),
+          use: [loaders.js()],
+        },
+      ],
     },
-  },
-
-  // highlight-start
-  // Let Webpack know how to process files
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        include: path.dirname(require.resolve(pkg.name)),
-        use: [loaders.js()],
-      },
-    ],
-  },
-  // highlight-end
-})
-
-// ...
+  })
+}
 ```
 
 That's it. Your theme is now ready to be published and reused. You can find the code for this tutorial [here](https://github.com/alexluong/gatsby-theme-tutorial).

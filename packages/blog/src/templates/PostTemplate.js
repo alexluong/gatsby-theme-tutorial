@@ -1,6 +1,6 @@
 import React from "react"
 import { graphql } from "gatsby"
-import Title from "gatsby-theme-tutorial-component-replacement--components/Title"
+import Title from "../components/gatsby-theme-tutorial/Title"
 
 function PostTemplate({ data: { post } }) {
   return (

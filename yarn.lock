@@ -4576,11 +4576,6 @@ gatsby-source-filesystem@^2.0.9:
     valid-url "^1.0.9"
     xstate "^3.1.0"
 
-gatsby-theme@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/gatsby-theme/-/gatsby-theme-0.0.1.tgz#988402b782508dbbe0634c3c398408db78fde047"
-  integrity sha512-TxEj4H4TdWDbU6oi7O3ozpsLVXW+6V2Qe533BRV2aWeucuV7+y9ga8bI34Yf+pr0k19oMCfQNHMKTo/n0hKvgA==
-
 gatsby-transformer-remark@^2.1.13:
   version "2.1.13"
   resolved "https://registry.yarnpkg.com/gatsby-transformer-remark/-/gatsby-transformer-remark-2.1.13.tgz#dd2c69be6bad429bb4b7ad3bedd67ffef2d72346"
@@ -4606,10 +4601,10 @@ gatsby-transformer-remark@^2.1.13:
     unist-util-select "^1.5.0"
     unist-util-visit "^1.3.0"
 
-gatsby@^2.0.56:
-  version "2.0.56"
-  resolved "https://registry.yarnpkg.com/gatsby/-/gatsby-2.0.56.tgz#7f4807e73d136571d9c96b68b6af54381168cfb4"
-  integrity sha512-+zDvlAfJ5rqk5FmuBVpR6Mdi7LZ3iJ/O/L9eNhvSVA4K8BIxVKN8rd6oNU/GmJl20ZLnCa9SUmP1pvjNuijBzQ==
+gatsby@^2.0.57:
+  version "2.0.57"
+  resolved "https://registry.yarnpkg.com/gatsby/-/gatsby-2.0.57.tgz#19202acd1790a29597b129cc9d2e42b5a4737146"
+  integrity sha512-VSJpY2+DszCEE2P/v4SLfdYu8Aoux3Y3n7k8nscN2J0AOrV11VC8bxP33lf2WuWeCEpNibNJiQfmG/LYVCwEVg==
   dependencies:
     "@babel/code-frame" "^7.0.0"
     "@babel/core" "^7.0.0"
