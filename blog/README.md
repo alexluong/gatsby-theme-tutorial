@@ -223,7 +223,7 @@ It's that easy!! Using themes, users can just focus on their content and don't h
 
 ## Customization
 
-### 1. Override UI components
+### 1. Component Shadowing
 
 As great as any theme can be, there will always be something that we want to change.
 
@@ -231,7 +231,7 @@ In this case, we're using an awesome theme already, but let's say we don't like 
 
 We can totally do this with ease with Component Shadowing. It's an awesome feature where we can create a component in our blog, and it'll override the corresponding component in the theme. All we need to do is creating a folder with the theme name (`gatsby-theme-tutorial`) under our `components` folder and putting the new-and-improved component there.
 
-Let's recreate the title component then:
+Let's recreate the title component there:
 
 ```jsx
 // in packages/blog/src/components/gatsby-theme-tutorial/Title.js
@@ -248,90 +248,95 @@ export default Title
 
 Save, and see the magic happens. Yes. It's that easy.
 
-### 2. Override Gatsby template
+### 2. Query - Render separation
 
-Now, let's say we want to change the `PostTemplate`. We may need to change the layout of the page, or we may want to have some extra fields in our post. We can totally achieve all these like so:
+With component shadowing, there arises an interesting pattern for theme developers to allow full UI customization by the users.
 
-In our `gatsby-node.js`, let's create a helper function that will:
+In our templates, instead of querying the data AND rendering some UI/layout, we can just query the data and let a component takes care of the rendering. Let's try it:
 
-1. Check if the user has a template that they wanna use
-2. If yes, we'll use that template
-3. If not, we'll use the theme's template
+```jsx
+// in packages/gatsby-theme-tutorial/src/templates/PostTemplate.js
 
-Here's how that function looks:
+import React from "react"
+import { graphql } from "gatsby"
+import PostTemplateRenderer from "../components/PostTemplateRenderer"
 
-```js
-// in packages/gatsby-theme-tutorial/gatsby-node.js
+export default props => <PostTemplateRenderer {...props} />
 
-function withThemePath(relativePath) {
-  let finalPath
-
-  try {
-    // Check if the user's site has the file
-    // path.resolve returns the absolute path
-    // relative to process.cwd()
-    let pathResolvedPath = path.resolve(relativePath)
-    require.resolve(pathResolvedPath)
-    finalPath = pathResolvedPath
-  } catch (e) {
-    try {
-      // If the user hasn't implemented the file,
-      // require.resolve is relative to this file
-      finalPath = require.resolve(relativePath)
-    } catch (e) {
-      // If we don't have the file also
-      // we're doing something wrong then
-      console.log(e)
-      finalPath = relativePath
+export const pageQuery = graphql`
+  query($slug: String!) {
+    post: markdownRemark(frontmatter: { slug: { eq: $slug } }) {
+      html
+      frontmatter {
+        title
+      }
     }
   }
-
-  return finalPath
-}
+`
 ```
 
-and use that helper function when creating the posts:
+```jsx
+// in packages/gatsby-theme-tutorial/src/components/PostTemplateRenderer.js
 
-```js
-// in packages/gatsby-theme-tutorial/gatsby-node.js
+import React from "react"
+import Title from "./Title"
 
-exports.createPages = ({ graphql, actions }) => {
-  // ...
-
-  createPage({
-    path: slug,
-    // component: path.resolve(__dirname, "src/templates/PostTemplate.js"), // highlight-line
-    component: withThemePath("src/templates/PostTemplate.js"), // highlight-line
-    context: { slug },
-  })
-
-  // ...
+function PostTemplateRenderer({ data: { post } }) {
+  return (
+    <div>
+      <Title>{post.frontmatter.title}</Title>
+      <div dangerouslySetInnerHTML={{ __html: post.html }} />
+    </div>
+  )
 }
+
+export default PostTemplateRenderer
 ```
 
-With this change, if the user has an override for `PostTemplate`, the theme will use it instead of its own template. Let's create it then:
+Now, if the user wants to change the template, with component shadowing, they can do so by creating the renderer component:
+
+```jsx
+// in packages/blog/src/components/gatsby-theme-tutorial/PostTemplateRenderer.js
+
+import React from "react"
+import Title from "./Title"
+
+function PostTemplateRenderer({ data: { post } }) {
+  return (
+    <div>
+      <Title>{post.frontmatter.title}</Title>
+      <hr /> {/* highlight-line */}
+      <div dangerouslySetInnerHTML={{ __html: post.html }} />
+    </div>
+  )
+}
+
+export default PostTemplateRenderer
+```
+
+You should see a line separating the title and the content. This is such a powerful pattern which allows users full customization of their website. If you're thinking about building a Gatsby theme, I'd highly recommend you consider this pattern.
+
+**NOTE**: _If it's not working for you, try stopping the running Gatsby process and restart it. New component shadowing will require you to rerun the site._
+
+### 3. Override Gatsby template
+
+Now, let's say we want to make a change in our data structure. We'd like our blog post to have a `description` field. We can totally do that with Gatsby theme, but we'd have to override the template. This is a big task as we're essentially creating a _child theme_ with some extra functionality. But don't worry, we can totally achieve this. Let's do it together:
+
+We'd have to use a Gatsby lifecycle, `onCreatePage`. You can learn more about that method and others in the [Gatsby docs](https://www.gatsbyjs.org/docs/node-apis/). For now, here's what we're gonna do:
+
+1. Create a replacement template
+2. Point the old pages to use our new template in `gatsby-node.js` using `onCreatePage`
+
+So, here's how the updated template component looks with a new graphql query:
 
 ```jsx
 // in packages/blog/src/templates/PostTemplate.js
 
 import React from "react"
 import { graphql } from "gatsby"
-import Title from "../components/gatsby-theme-tutorial/Title" // highlight-line
+import PostTemplateRenderer from "../components/gatsby-theme-tutorial/PostTemplateRenderer" // highlight-line
 
-function PostTemplate({ data: { post } }) {
-  return (
-    <div>
-      <Title>{post.frontmatter.title}</Title>
-      {/* highlight-start */}
-      <p>{post.frontmatter.description}</p>
-      <hr />
-      {/* highlight-end */}
-      <div dangerouslySetInnerHTML={{ __html: post.html }} />
-    </div>
-  )
-}
-
-export default PostTemplate
+export default props => <PostTemplateRenderer {...props} />
 
 export const pageQuery = graphql`
   query($slug: String!) {
@@ -346,7 +351,33 @@ export const pageQuery = graphql`
 `
 ```
 
-**NOTE**: _To be frank, this doesn't seem like the best options yet since we'll have to copy-paste the original `PostTemplate` from the theme and adjust it. I believe we will be able to solve this problem in the future and come up with a more elegant solution. In the mean time, there are ways for themes developer to go around this with some API pattern. I'll elaborate more in future posts._
+Now, nicely ask Gatsby to use our new template component whenever it creates a new post page:
+
+```js
+// in packages/blog/gatsby-node.js
+
+const path = require("path")
+
+exports.onCreatePage = ({ page, actions }) => {
+  const { createPage, deletePage } = actions
+
+  return new Promise(resolve => {
+    // Check if this page is a post page created by theme "gatsby-theme-tutorial"
+    if (
+      page.component.includes("gatsby-theme-tutorial") &&
+      page.component.includes("PostTemplate")
+    ) {
+      deletePage(page)
+      createPage({
+        ...page,
+        component: path.resolve(__dirname, "src/templates/PostTemplate.js"), // Replacement template
+      })
+    }
+
+    resolve()
+  })
+}
+```
 
 Don't forget to add the `description` field in our post:
 
@@ -364,11 +395,32 @@ description: "This field is only available in userland." <!-- add description fi
 <!-- ... -->
 ```
 
+And make use of that description in our renderer:
+
+```jsx
+// in packages/blog/src/components/gatsby-theme-tutorial/PostTemplateRenderer.js
+
+// ...
+
+function PostTemplateRenderer({ data: { post } }) {
+  return (
+    <div>
+      <Title>{post.frontmatter.title}</Title>
+      <p>{post.frontmatter.description}</p> {/* highlight-line */}
+      <hr />
+      <div dangerouslySetInnerHTML={{ __html: post.html }} />
+    </div>
+  )
+}
+
+// ...
+```
+
 This should do the trick. Try running the blog, and you should see:
 
 ![a blank site with a title "Hello World from User" with a description](./post-from-user-with-description.png)
 
-And there you have it, a fully customizable theme. As you can see, using theme makes it super easy to get started and utilize all the functionality of the theme. At the same time, users are still in control of their website and have the ability to change and customize it as they see fit.
+And there you have it, a fully customizable theme. Using theme makes it super easy to get started and utilize all the functionality of the theme. At the same time, users are still in control of their website and have the ability to change and customize it as they see fit.
 
 ## Publish
 
@@ -395,7 +447,7 @@ exports.onCreateWebpackConfig = ({ stage, loaders, actions }) => {
 }
 ```
 
-That's it. Your theme is now ready to be published and reused. You can find the code for this tutorial [here](https://github.com/alexluong/gatsby-theme-tutorial).
+That's it. Your theme is now ready to be published and reused. If you'd like to play around more with themes, you can find the code for this tutorial at [this repo](https://github.com/alexluong/gatsby-theme-tutorial) or check out [themes examples](https://github.com/ChristopherBiscardi/gatsby-theme-examples) from the Gatsby team..
 
 ## Final thoughts
 
