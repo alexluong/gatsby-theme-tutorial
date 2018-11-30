@@ -314,7 +314,7 @@ function PostTemplateRenderer({ data: { post } }) {
 export default PostTemplateRenderer
 ```
 
-You should see a line separating the title and the content. This is such a powerful pattern which allows users full customization of their website. If you're thinking about building a Gatsby theme, I'd highly recommend you consider this pattern.
+You should see a line separating the title and content. This is such a powerful pattern which allows users full customization of their website. If you're thinking about building a Gatsby theme, I'd highly recommend you consider this pattern.
 
 **NOTE**: _If it's not working for you, try stopping the running Gatsby process and restart it. New component shadowing will require you to rerun the site._
 
